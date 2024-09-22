@@ -30,9 +30,6 @@ def fetch_prayer_times(date, country, city, add_for):
 
 def authenticate():
     CLIENT_ID         = "dc019d2f-56b2-493b-9b80-87ec157b1e3a"
-    # TENANT_ID         = "f081ce87-83ce-4726-bea5-783eaa04fdfc"
-    # authority_url     = f'https://login.microsoftonline.com/{TENANT_ID}'
-
 
     app = PublicClientApplication(CLIENT_ID,
                                 authority="https://login.microsoftonline.com/common")
@@ -64,7 +61,6 @@ def authenticate():
             st.error("Authentication failed.")
             return None
 
-# Function to send batch request
 def send_batch_create(batch_meetings, access_token):
     # Prepare batch requests (maximum 20 per batch)
     batch_requests = []
