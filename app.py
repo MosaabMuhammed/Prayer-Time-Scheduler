@@ -29,37 +29,44 @@ def fetch_prayer_times(date, country, city, add_for):
     
 
 def authenticate():
-    CLIENT_ID         = "dc019d2f-56b2-493b-9b80-87ec157b1e3a"
+    CLIENT_ID = "dc019d2f-56b2-493b-9b80-87ec157b1e3a"
+    authority = "https://login.microsoftonline.com/common"
+    
+    app = PublicClientApplication(CLIENT_ID, authority=authority)
 
-    app = PublicClientApplication(CLIENT_ID,
-                                authority="https://login.microsoftonline.com/common")
-
-    # initialize result variable to hole the token response
-    result = None 
-
-    # We now check the cache to see
-    # whether we already have some accounts that the end user already used to sign in before.
+    # Check if we have any cached accounts
     accounts = app.get_accounts()
+
     if accounts:
-        # If so, you could then somehow display these accounts and let end user choose
-        print("Pick the account you want to use to proceed:")
-        for a in accounts:
-            print(a["username"])
-        # Assuming the end user chose this one
-        chosen = accounts[0]
-        # Now let's try to find a token in cache for this account
-        result = app.acquire_token_silent(["User.Read", "Calendars.ReadWrite"], account=chosen)
+        # Try to silently acquire a token for an existing account
+        result = app.acquire_token_silent(["User.Read", "Calendars.ReadWrite"], account=accounts[0])
+    else:
+        result = None
 
-
+    # If no token is found in cache or silent token acquisition fails, use Device Code Flow
     if not result:
-    # So no suitable token exists in cache. Let's get a new one from Azure AD.
-        result = app.acquire_token_interactive(scopes=["User.Read", 'Calendars.ReadWrite'])
-
-        if 'access_token' in result:
-            return result['access_token']
-        else:
-            st.error("Authentication failed.")
+        # Start the device code flow
+        flow = app.initiate_device_flow(scopes=["User.Read", "Calendars.ReadWrite"])
+        
+        # Check if flow initialization was successful
+        if "user_code" not in flow:
+            st.error("Failed to initiate device flow. Error: " + flow.get("error"))
             return None
+        
+        # Display the device code and login instructions to the user
+        st.info("To authenticate, please visit https://microsoft.com/devicelogin and enter the following code:")
+        st.code(flow['user_code'])
+
+        # Wait for user to authenticate, this will block until authentication is completed or fails
+        result = app.acquire_token_by_device_flow(flow)
+
+    # Return the access token if available
+    if 'access_token' in result:
+        return result['access_token']
+    else:
+        st.error(f"Authentication failed: {result.get('error_description', 'Unknown error')}")
+        return None
+
 
 def send_batch_create(batch_meetings, access_token):
     # Prepare batch requests (maximum 20 per batch)
@@ -334,25 +341,48 @@ col1, col2 = st.columns([1, 1])
 with col1:
     # Authenticate and create prayer times
     if st.button('Add Prayer Times to My Calendar'):
+        error_occurred = False  # Initialize error flag
         with st.spinner('🚀 Adding prayers, please wait... ⌛'):
-            if 'access_token' not in st.session_state or st.session_state['access_token'] is None:
-                st.session_state['access_token'] = authenticate()
+            try:
+                if 'access_token' not in st.session_state or st.session_state['access_token'] is None:
+                    st.session_state['access_token'] = authenticate()
 
-            if 'access_token' in st.session_state:
-                delete_prayers_from_calendar(access_token=st.session_state['access_token'])
-                prayer_times = fetch_prayer_times(date=start_date, country=country, city=city, add_for=add_for)
-                add_prayers_to_calendar(st.session_state['access_token'], prayer_times, minutes_between=period, meeting_color=color)
-        st.success('Prayers has been added successfully in your calendar!')
+                if 'access_token' in st.session_state:
+                    delete_prayers_from_calendar(access_token=st.session_state['access_token'])
+                    prayer_times = fetch_prayer_times(date=start_date, country=country, city=city, add_for=add_for)
+                    add_prayers_to_calendar(st.session_state['access_token'], prayer_times, minutes_between=period, meeting_color=color)
+                else:
+                    error_occurred = True  # Error if access_token is missing
+                    st.error("Authentication failed. Unable to add prayers.")
+            except Exception as e:
+                error_occurred = True  # Set flag if an exception occurs
+                st.error(f"An error occurred: {e}")
+
+        # Show success message only if no errors occurred
+        if not error_occurred:
+            st.success('Prayers have been added successfully to your calendar!')
+
 
 with col2:
     # Reset Button
     if st.button('Remove All Existing Prayer Meetings'):
+        error_occurred = False  # Initialize error flag
         with st.spinner('🗑️ Processing, please wait... ⌛'):
-            if 'access_token' not in st.session_state or st.session_state['access_token'] is None:
-                st.session_state['access_token'] = authenticate()
+            try:
+                if 'access_token' not in st.session_state or st.session_state['access_token'] is None:
+                    st.session_state['access_token'] = authenticate()
 
+                if 'access_token' in st.session_state:
+                    delete_prayers_from_calendar(access_token=st.session_state['access_token'])
+                else:
+                    error_occurred = True  # Error if access_token is missing
+                    st.error("Authentication failed. Unable to delete prayer meetings.")
+            except Exception as e:
+                error_occurred = True  # Set flag if an exception occurs
+                st.error(f"An error occurred: {e}")
 
-            if 'access_token' in st.session_state:
-                delete_prayers_from_calendar(access_token=st.session_state['access_token'])
-        st.success('All prayer meetings have beed deleted successfully from your calendar!')
+        # Show success message only if no errors occurred
+        if not error_occurred:
+            st.success('All prayer meetings have been deleted successfully from your calendar!')
+
 
