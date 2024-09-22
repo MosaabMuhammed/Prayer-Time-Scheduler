@@ -328,13 +328,18 @@ st.markdown('<div class="title">🕌 Prayer Time Scheduler 🕌</div>', unsafe_a
 
 with st.expander("Select Prayer Times"):
     # Get user input
+    st.markdown("##### Date Settings")
     start_date = st.date_input('Start Date', datetime.today())
+    add_for    = st.selectbox('Add For', ['Month', 'Year'])
+
+    st.markdown("##### Location Settings")
     country = st.selectbox('Country', list(country_city_map.keys()))   
     cities = country_city_map.get(country, [])
     city = st.selectbox('City', cities)
+
+    st.markdown("##### Meeting Settings")    
     color      = st.selectbox('Meeting Color', ['🔴 Red', '🟠 Orange', '🟡 Yellow', '🟢 Green', '🔵 Blue', '🟣 Purple'])
     period     = st.selectbox('Prayer Period (minutes)', [10, 15, 20, 30, 45])
-    add_for    = st.selectbox('Add For', ['Month', 'Year'])
 
 col1, col2 = st.columns([1, 1])
 
