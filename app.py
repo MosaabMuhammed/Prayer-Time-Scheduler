@@ -330,7 +330,7 @@ with st.expander("Select Prayer Times"):
     # Get user input
     st.markdown("##### Date Settings")
     start_date = st.date_input('Start Date', datetime.today())
-    add_for    = st.selectbox('Add For', ['Month', 'Year'])
+    add_for    = st.selectbox('Add For Current', ['Month', 'Year'])
 
     st.markdown("##### Location Settings")
     country = st.selectbox('Country', list(country_city_map.keys()))   
@@ -338,7 +338,7 @@ with st.expander("Select Prayer Times"):
     city = st.selectbox('City', cities)
 
     st.markdown("##### Meeting Settings")    
-    color      = st.selectbox('Meeting Color', ['🔴 Red', '🟠 Orange', '🟡 Yellow', '🟢 Green', '🔵 Blue', '🟣 Purple'])
+    color      = st.selectbox('Meeting Color', ['🟣 Purple', '🔴 Red', '🟠 Orange', '🟡 Yellow', '🟢 Green', '🔵 Blue'])
     period     = st.selectbox('Prayer Period (minutes)', [10, 15, 20, 30, 45])
 
 col1, col2 = st.columns([1, 1])
